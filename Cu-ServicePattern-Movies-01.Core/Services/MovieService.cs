@@ -46,7 +46,7 @@ namespace Cu_ServicePattern_Movies_01.Core.Services
                 movie.Image = await _fileService.Store(image);
             }
             //add to context
-            await _movieDbContext.Movies.AddAsync(movie);
+            _movieDbContext.Movies.Add(movie);
             //savechanges
             return await SaveChangesAsync();
         }
@@ -73,7 +73,7 @@ namespace Cu_ServicePattern_Movies_01.Core.Services
             return _movieDbContext.Movies.AsQueryable();
         }
 
-        public async Task<IEnumerable<Movie>> GetallAsync()
+        public async Task<IEnumerable<Movie>> GetAllAsync()
         {
             return await _movieDbContext.Movies
                 .Include(m => m.Company)

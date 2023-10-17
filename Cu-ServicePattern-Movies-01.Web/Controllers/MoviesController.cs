@@ -27,7 +27,7 @@ namespace Cu_ServicePattern_Movies_01.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var movies = await _movieService.GetallAsync();
+            var movies = await _movieService.GetAllAsync();
             var moviesIndexViewModel = new MoviesIndexViewModel
             {
                 Movies = movies.Select(m =>
