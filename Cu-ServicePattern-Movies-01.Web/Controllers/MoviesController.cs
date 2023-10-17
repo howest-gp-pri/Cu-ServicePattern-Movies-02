@@ -6,7 +6,6 @@ using Cu_ServicePattern_Movies_01.Services.Interfaces;
 using Cu_ServicePattern_Movies_01.Core;
 using Cu_ServicePattern_Movies_01.Core.Interfaces;
 using Cu_ServicePattern_Movies_01.Core.Services.Interfaces;
-using Cu_ServicePattern_Movies_01.Core.Services.Models.RequestModels;
 
 namespace Cu_ServicePattern_Movies_01.Controllers
 {
@@ -28,10 +27,10 @@ namespace Cu_ServicePattern_Movies_01.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var result = await _movieService.GetAllAsync();
+            var movies = await _movieService.GetAllAsync();
             var moviesIndexViewModel = new MoviesIndexViewModel
             {
-                Movies = result.Items.Select(m =>
+                Movies = movies.Select(m =>
                 new MoviesInfoViewModel
                 {
                     Id = m.Id,
@@ -45,13 +44,11 @@ namespace Cu_ServicePattern_Movies_01.Controllers
         [HttpGet]
         public async Task<IActionResult> Info(int id)
         {
-            var result = await _movieService.GetbyIdAsync(id);
-            if(!result.IsSuccess)
+            var movie = await _movieService.GetbyIdAsync(id);
+            if(movie == null)
             {
-                return NotFound(result.Errors);
+                return NotFound();
             }
-            //get the movie from the result.Items list
-            var movie = result.Items.First();
             var moviesInfoViewModel = new MoviesInfoViewModel
             {
                 Id = movie.Id,
@@ -93,18 +90,10 @@ namespace Cu_ServicePattern_Movies_01.Controllers
             //call the MovieService
             var directorIds = moviesCreateViewModel.Directors.Where(d => d.IsSelected == true)
                 .Select(d => d.Value);
-            var movieCreateRequestModel = new MovieCreateRequestModel
-            {
-                Title = moviesCreateViewModel.Title,
-                CompanyId = moviesCreateViewModel.CompanyId,
-                Price = moviesCreateViewModel.Price,
-                ReleaseDate = moviesCreateViewModel.ReleaseDate,
-                ActorIds = moviesCreateViewModel.ActorIds,
-                DirectorIds = directorIds,
-                Image = moviesCreateViewModel.Image,
-            };
-            var result = await _movieService.CreateAsync(movieCreateRequestModel);
-            if(result.IsSuccess)
+            var result = await _movieService.CreateAsync(moviesCreateViewModel.Title,moviesCreateViewModel.ReleaseDate
+                ,moviesCreateViewModel.Price,moviesCreateViewModel.CompanyId,moviesCreateViewModel.Image,
+                moviesCreateViewModel.ActorIds,directorIds);
+            if(result == true)
             {
                 return RedirectToAction("Index");
             }
@@ -114,12 +103,15 @@ namespace Cu_ServicePattern_Movies_01.Controllers
         [HttpGet]
         public async Task<IActionResult> Update(int id)
         {
-            var result = await _movieService.GetbyIdAsync(id);
-            if (!result.IsSuccess)
+            var movie = await _movieDbContext
+                .Movies
+                .Include(m => m.Actors)
+                .Include(m => m.Directors)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (movie == null)
             {
                 return NotFound();
             }
-            var movie = result.Items.First();
             var moviesUpdateViewModel = new MoviesUpdateViewModel
             {
                 Id = movie.Id,
@@ -156,19 +148,10 @@ namespace Cu_ServicePattern_Movies_01.Controllers
             }
             var directorIds = moviesUpdateViewModel.Directors
                 .Where(d => d.IsSelected == true).Select(d => d.Value);
-            var movieUpdateRequestModel = new MovieUpdateRequestModel 
-            {
-                Id = moviesUpdateViewModel.Id,
-                Title = moviesUpdateViewModel.Title,
-                CompanyId = moviesUpdateViewModel.CompanyId,
-                ActorIds = moviesUpdateViewModel.ActorIds,
-                DirectorIds = directorIds,
-                Price = moviesUpdateViewModel.Price,
-                Image = moviesUpdateViewModel.Image,
-                ReleaseDate = moviesUpdateViewModel.ReleaseDate
-            };
-            var result = await _movieService.UpdateAsync(movieUpdateRequestModel);
-            if(result.IsSuccess)
+            var result = await _movieService.UpdateAsync(moviesUpdateViewModel.Id,moviesUpdateViewModel.ReleaseDate,
+                moviesUpdateViewModel.Title,moviesUpdateViewModel.Price,moviesUpdateViewModel.CompanyId,
+                moviesUpdateViewModel.Image,moviesUpdateViewModel.ActorIds, directorIds);
+            if(result == true)
             {
                 return RedirectToAction("Index");
             }
@@ -200,7 +183,7 @@ namespace Cu_ServicePattern_Movies_01.Controllers
             var result = await _movieService.DeleteAsync(moviesDeleteViewModel.Id);
             //save the changes to the database
             //savechanges
-            if (result.IsSuccess)
+            if (result == true)
             {
                 return RedirectToAction("Index");
             }
